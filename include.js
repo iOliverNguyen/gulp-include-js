@@ -3,7 +3,7 @@ var path = require('path');
 var through = require('through2');
 var fs = require('fs');
 
-var pluginName = 'includejs';
+var pluginName = 'include-js';
 var blue = gutil.colors.blue;
 
 function error(context, err) {
@@ -20,6 +20,7 @@ function include(options) {
   options = options || {};
   if (options.cache === undefined) options.cache = false;
   if (options.keyword === undefined) options.keyword = 'INCLUDE';
+  if (options.ext === undefined) options.ext = 'js';
 
   return through.obj(function(file, enc, cb) {
     var context = this;
@@ -42,7 +43,7 @@ function include(options) {
 
     function exec(s, stack) {
       var result = '';
-      var r = new RegExp(options.keyword + ' *\\( *[\'"]([^\'"]*)[\'"] *\\) *;?', 'g');
+      var r = new RegExp(options.keyword + ' *\\( *[\'"]([^\'"]*)[\'"] *\\) *;?');
       var m = r.exec(s);
       while (m) {
         index = m.index;
@@ -56,26 +57,19 @@ function include(options) {
     function read(relpath, stack) {
       var basename = path.basename(relpath);
       basename = basename[0] === '_'? basename : '_' + basename;
-      basename = path.extname(basename) === 'jsx'? basename : basename + '.jsx';
+      basename = path.extname(basename) === options.ext? basename : basename + '.' + options.ext;
 
       var filepath = path.join(file.base || file.cwd, path.dirname(relpath), basename);
-      var newStack = stack.concat([filepath]);
+      var newStack = stack.concat([relpath]);
 
-      if (stack.indexOf(filepath) >= 0) {
+      if (stack.indexOf(relpath) >= 0) {
         error(context, new Error('Circular ' + blue(newStack.join(', '))));
         return '';
       }
 
-      try {
-        var str = fs.readFileSync(filepath, {encoding: 'utf8'});
-        str = exec(str, newStack);
-        return str;
-
-      } catch(e) {
-        error(context, new Error('Could not read file ' + blue(filepath)));
-      }
-
-      return '';
+      var str = fs.readFileSync(filepath, {encoding: 'utf8'});
+      str = exec(str, newStack);
+      return str;
     }
 
     var str = file.contents.toString();
