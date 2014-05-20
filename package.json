@@ -1,0 +1,23 @@
+{
+  "name": "gulp-include-js",
+  "version": "0.1.0",
+  "author": "Vu Nguyen <ng-vu@liti.ws>",
+  "description": "Plugin for Gulp to includes JavaScript files",
+  "homepage": "http://github.com/ng-vu/gulp-include-js",
+  "main": "include.js",
+  "license": [
+    {
+      "type": "MIT",
+      "url": "http://github.com/ng-vu/gulp-include-js/blob/master/LICENSE"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ng-vu/gulp-include-js.git"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "gulp-util": "^2.2.14",
+    "through2": "^0.4.1"
+  }
+}
