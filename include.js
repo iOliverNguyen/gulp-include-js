@@ -44,12 +44,13 @@ function include(options) {
 
     function exec(s, stack) {
       var result = '';
-      var r = new RegExp('(//[^\r\n]*)?' + options.keyword + ' *\\( *[\'"]([^\'"]*)[\'"] *\\)');
+      var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
       var m = r.exec(s);
       while (m) {
         isCmt = m[1];
-        relpath = m[2];
-        result += s.slice(0, m.index) + (isCmt? '' : read(relpath, stack || []));
+        inline = m[2] || '';
+        relpath = m[3];
+        result += s.slice(0, m.index) + (isCmt? '' : inline + read(relpath, stack || [], inline));
         s = s.slice(m.index + m[0].length);
         m = r.exec(s);
       }
@@ -71,7 +72,7 @@ function include(options) {
 
       var str = fs.readFileSync(filepath, {encoding: 'utf8'});
       str = exec(str, newStack);
-      return trim(str);
+      return inline? trim(str) : str;
     }
 
     var str = file.contents.toString();
