@@ -82,7 +82,7 @@ function time(filepath) {
     return stat? stat.mtime.getTime() : null;
 
   } catch(e) {
-    console.error('include-js, time(): path not exist', filepath);
+    gutil.log('include-js: path not found', magenta(filepath));
     return null;
   }
 }
