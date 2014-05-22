@@ -7,6 +7,9 @@ var trim = require('./lib/trim');
 var pluginName = 'include-js';
 var magenta = gutil.colors.magenta;
 
+var cacheFiles = {};      // {time: Date, content: String, includes: Array}
+var cacheIncludes = {};   // {time: Date, content: String}
+
 function error(context, err) {
   context.emit('error', new gutil.PluginError(pluginName, err));
 }
@@ -16,12 +19,52 @@ function error(context, err) {
 // read file contents, continue scanning, check for circular
 // cache _* files
 
+function exec(s, options, base, stack) {
+  var result = '';
+  var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
+  var m = r.exec(s);
+  while (m) {
+    var isCmt = m[1];
+    var inline = m[2] || '';
+    var id = m[3];
+
+    result += s.slice(0, m.index);
+    if (!isCmt) {
+      var sinc = read(id, options, base, stack||[]);
+      if (inline) sinc = trim(sinc);
+      result += inline + sinc;
+    }
+    s = s.slice(m.index + m[0].length);
+    m = r.exec(s);
+  }
+  return result + s;
+}
+
+function read(id, options, base, stack) {
+  var basename = path.basename(id);
+  basename = basename[0] === '_'? basename : '_' + basename;
+  basename = path.extname(basename) === options.ext? basename : basename + '.' + options.ext;
+
+  var filepath = path.join(base, path.dirname(id), basename);
+  var newStack = stack.concat([id]);
+
+  if (stack.indexOf(id) >= 0) {
+    error(context, new Error('Circular ' + magenta(newStack.join(', '))));
+    return '';
+  }
+
+  var str = fs.readFileSync(filepath, {encoding: 'utf8'});
+  str = exec(str, options, base, newStack);
+  return str;
+}
+
 function include(options) {
 
   options = options || {};
   if (options.cache === undefined) options.cache = false;
   if (options.keyword === undefined) options.keyword = 'INCLUDE';
   if (options.ext === undefined) options.ext = 'js';
+  if (options.ext[0] === '.') options.ext = options.ext.slice(1);
 
   return through.obj(function(file, enc, cb) {
     var context = this;
@@ -42,42 +85,9 @@ function include(options) {
       return cb();
     }
 
-    function exec(s, stack) {
-      var result = '';
-      var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
-      var m = r.exec(s);
-      while (m) {
-        isCmt = m[1];
-        inline = m[2] || '';
-        relpath = m[3];
-        result += s.slice(0, m.index) + (isCmt? '' : inline + read(relpath, stack || [], inline));
-        s = s.slice(m.index + m[0].length);
-        m = r.exec(s);
-      }
-      return result + s;
-    }
-
-    function read(relpath, stack, inline) {
-      var basename = path.basename(relpath);
-      basename = basename[0] === '_'? basename : '_' + basename;
-      basename = path.extname(basename) === options.ext? basename : basename + '.' + options.ext;
-
-      var filepath = path.join(file.base || file.cwd, path.dirname(relpath), basename);
-      var newStack = stack.concat([relpath]);
-
-      if (stack.indexOf(relpath) >= 0) {
-        error(context, new Error('Circular ' + magenta(newStack.join(', '))));
-        return '';
-      }
-
-      var str = fs.readFileSync(filepath, {encoding: 'utf8'});
-      str = exec(str, newStack);
-      return inline? trim(str) : str;
-    }
-
-    var str = file.contents.toString();
+    var s = file.contents.toString();
     try {
-      file.contents = new Buffer(exec(str));
+      file.contents = new Buffer(exec(s, options, file.base||file.cwd));
 
     } catch (e) {
       e.filename = file.path;
