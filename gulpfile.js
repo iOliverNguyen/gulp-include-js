@@ -81,6 +81,7 @@ gulp.task('cache_test_1', function(cb) {
     .on('end', function() {
       var a = require('./test/out/cache_1/a');
       expect(a.ABC).equal('ABCCC');
+      console.log('Cache Test 1 OK');
       cb();
     });
 });
@@ -93,6 +94,7 @@ gulp.task('cache_test_2', function(cb) {
     .on('error', console.log)
     .on('end', function() {
       expect(fs.existsSync('test/out/cache_2/a.js')).equal(false);
+      console.log('Cache Test 2 OK');
       cb();
     });
 });

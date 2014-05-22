@@ -100,17 +100,20 @@ function isDirty(filepath) {
 function include(options) {
 
   options = options || {};
-  if (options.cache === undefined) options.cache = false;
-  if (options.keyword === undefined) options.keyword = 'INCLUDE';
-  if (options.ext === undefined) options.ext = 'js';
+  options.keyword = options.keyword || 'INCLUDE';
+  options.cache = options.cache || false;
+  options.showFiles = typeof options.showFiles === 'string'? options.showFiles :
+    options.showFiles? 'include-js:' : false;
+  options.ext = options.ext || 'js';
   if (options.ext[0] === '.') options.ext = options.ext.slice(1);
 
   return through.obj(function(file, enc, cb) {
 
     this.base = file.base || file.cwd;
     this.filepath = file.path;
-    this.includes = {};
+    this.id = path.relative(this.base, this.filepath);
     this.options = options;
+    this.includes = {};
 
     if (file.isNull()) {
       this.push(file);
@@ -127,7 +130,7 @@ function include(options) {
     if (filename[0] === '_') return cb();
 
     // check if file was cached
-    if (this.options.cache && !isDirty(file.path)) {
+    if (options.cache && !isDirty(file.path)) {
       return cb();
     }
 
@@ -142,10 +145,14 @@ function include(options) {
     }
 
     // save to cache
-    if (this.options.cache) cacheModules[file.path] = {
+    if (options.cache) cacheModules[file.path] = {
       time: time(file.path),
       includes: this.includes
     };
+
+    if (options.showFiles) {
+      gutil.log(options.showFiles, magenta(path.relative(file.cwd, file.path)));
+    }
 
     this.push(file);
     cb();
