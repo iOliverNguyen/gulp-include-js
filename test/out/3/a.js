@@ -1,20 +1,18 @@
 // a.js includes b.js and c.js
 // b.js includes c.js
+// c.js includes b.js
+// ~> ERROR: circular
 
 function Annie() {
   return 'A';
 }
 
-function Blitzcrank() {
-  return 'B' + 'C';
-;
-}
 ;
 
 function Caitlyn() {
-  return 'C';
-;
+  ;
 }
 
 var expect = require('chai').expect;
-expect(Annie() + Blitzcrank() + Caitlyn()).equal('ABCC');
+expect(Annie() + Caitlyn()).equal('Aundefined');
+expect(typeof Blitzcrank).equal('undefined');

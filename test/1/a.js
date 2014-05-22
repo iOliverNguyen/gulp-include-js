@@ -6,7 +6,6 @@ function Annie() {
 }
 
 INCLUDE('b');
-INCLUDE('b');
 
 function Caitlyn() {
   return INCLUDE('c');

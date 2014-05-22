@@ -1,10 +1,11 @@
+var fs = require('fs');
 var gutil = require('gulp-util');
 var path = require('path');
 var through = require('through2');
-var fs = require('fs');
+var trim = require('./lib/trim');
 
 var pluginName = 'include-js';
-var blue = gutil.colors.blue;
+var magenta = gutil.colors.magenta;
 
 function error(context, err) {
   context.emit('error', new gutil.PluginError(pluginName, err));
@@ -43,18 +44,19 @@ function include(options) {
 
     function exec(s, stack) {
       var result = '';
-      var r = new RegExp(options.keyword + ' *\\( *[\'"]([^\'"]*)[\'"] *\\) *;?');
+      var r = new RegExp('(//[^\r\n]*)?' + options.keyword + ' *\\( *[\'"]([^\'"]*)[\'"] *\\)');
       var m = r.exec(s);
       while (m) {
-        index = m.index;
-        result += s.slice(0, m.index) + read(m[1], stack || []);
+        isCmt = m[1];
+        relpath = m[2];
+        result += s.slice(0, m.index) + (isCmt? '' : read(relpath, stack || []));
         s = s.slice(m.index + m[0].length);
         m = r.exec(s);
       }
       return result + s;
     }
 
-    function read(relpath, stack) {
+    function read(relpath, stack, inline) {
       var basename = path.basename(relpath);
       basename = basename[0] === '_'? basename : '_' + basename;
       basename = path.extname(basename) === options.ext? basename : basename + '.' + options.ext;
@@ -63,13 +65,13 @@ function include(options) {
       var newStack = stack.concat([relpath]);
 
       if (stack.indexOf(relpath) >= 0) {
-        error(context, new Error('Circular ' + blue(newStack.join(', '))));
+        error(context, new Error('Circular ' + magenta(newStack.join(', '))));
         return '';
       }
 
       var str = fs.readFileSync(filepath, {encoding: 'utf8'});
       str = exec(str, newStack);
-      return str;
+      return trim(str);
     }
 
     var str = file.contents.toString();

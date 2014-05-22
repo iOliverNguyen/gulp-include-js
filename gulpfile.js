@@ -34,6 +34,19 @@ gulp.task('test2', function(cb) {
     });
 });
 
+gulp.task('test3', function(cb) {
+  gulp.src('test/3/*.js', {base:'test/3'})
+    .pipe(plumber())
+    .pipe(includeJs())
+    .pipe(gulp.dest('test/out/3'))
+    .on('error', console.log)
+    .on('end', function() {
+      require('./test/out/3/a.js');
+      console.log('Test 3 OK');
+      cb();
+    });
+});
+
 gulp.task('trim_test', function(cb) {
   require('./test/trim_test');
 });
@@ -41,5 +54,6 @@ gulp.task('trim_test', function(cb) {
 gulp.task('test', function() {
   gulp.start('test1');
   gulp.start('test2');
+  gulp.start('test3');
   gulp.start('trim_test');
 });

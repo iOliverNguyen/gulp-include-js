@@ -8,15 +8,15 @@ function Annie() {
 }
 
 function Blitzcrank() {
-  return 'B' + 
-
+  return 'B' + ;
+;
 }
-
+;
 
 function Caitlyn() {
   return function Blitzcrank() {
-  return 'B' + 
+  return 'B' + ;
 }
-
-
+;
+;
 }
