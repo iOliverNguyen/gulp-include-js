@@ -34,7 +34,12 @@ gulp.task('test2', function(cb) {
     });
 });
 
+gulp.task('trim_test', function(cb) {
+  require('./test/trim_test');
+});
+
 gulp.task('test', function() {
   gulp.start('test1');
   gulp.start('test2');
+  gulp.start('trim_test');
 });
