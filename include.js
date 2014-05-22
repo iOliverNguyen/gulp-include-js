@@ -89,11 +89,9 @@ function time(filepath) {
 
 function isDirty(filepath) {
   var cache = cacheModules[filepath];
-  // console.log('cache', cache);
   if (!cache || cache.time !== time(filepath)) return true;
   if (!cache.includes) return true;
   for (var incFile in cache.includes) {
-    // console.log('include', incFile, cacheIncludes[incFile]);
     if (cacheIncludes[incFile].time !== time(incFile)) return true;
   }
   return false;
@@ -130,11 +128,8 @@ function include(options) {
 
     // check if file was cached
     if (this.options.cache && !isDirty(file.path)) {
-      console.log('Skip file', file.path);
       return cb();
     }
-
-    console.log('Compile file', file.path);
 
     var s = file.contents.toString();
     try {
@@ -151,7 +146,6 @@ function include(options) {
       time: time(file.path),
       includes: this.includes
     };
-    // console.log('cacheModules', cacheModules);
 
     this.push(file);
     cb();

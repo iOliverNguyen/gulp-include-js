@@ -23,7 +23,7 @@ tests[5] = '/*xyz\nxyz*///123\n\n  \n  abc';
 outputs[5] = 'abc';
 
 tests[6] = '\n\n/*\nxyz\n  */ \n/* */ // 123 \nabc\n\n//123\n/* xyz */abc \n';
-outputs[6] = 'abc\n\n//123\n/* xyz */abc \n';
+outputs[6] = 'abc\n\n//123\n/* xyz */abc';
 
 for (var i=0; i<tests.length; i++) {
   expect(trim(tests[i])).equal(outputs[i]);
