@@ -13,6 +13,5 @@ function Caitlyn() {
   // return INCLUDE('c');
 }
 
-var expect = require('chai').expect;
-expect(Annie() + Caitlyn()).equal('Aundefined');
-expect(typeof Blitzcrank).equal('undefined');
+exports.AC = Annie() + Caitlyn();
+exports.B = typeof Blitzcrank;

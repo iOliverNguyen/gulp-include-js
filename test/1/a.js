@@ -8,8 +8,8 @@ function Annie() {
 INCLUDE('b');
 
 function Caitlyn() {
-  return INCLUDE('c');
+  var c = INCLUDE('c');
+  return INCLUDE('c') + c;
 }
 
-var expect = require('chai').expect;
-expect(Annie() + Blitzcrank() + Caitlyn()).equal('ABCC');
+exports.ABC = Annie() + Blitzcrank() + Caitlyn();
