@@ -30,7 +30,7 @@ function exec(s, options, base, stack) {
 
     result += s.slice(0, m.index);
     if (!isCmt) {
-      var sinc = read(id, options, base, stack||[]);
+      var sinc = read.call(this, id, options, base, stack||[]);
       if (inline) sinc = trim(sinc);
       result += inline + sinc;
     }
@@ -49,13 +49,14 @@ function read(id, options, base, stack) {
   var newStack = stack.concat([id]);
 
   if (stack.indexOf(id) >= 0) {
-    error(context, new Error('Circular ' + magenta(newStack.join(', '))));
+    error(this, new Error('Circular ' +
+      newStack.map(function(i){ return magenta(i); }).join(', ')));
     return '';
   }
 
-  var str = fs.readFileSync(filepath, {encoding: 'utf8'});
-  str = exec(str, options, base, newStack);
-  return str;
+  var s = fs.readFileSync(filepath, {encoding: 'utf8'});
+  s = exec.call(this, s, options, base, newStack);
+  return s;
 }
 
 function include(options) {
@@ -67,7 +68,6 @@ function include(options) {
   if (options.ext[0] === '.') options.ext = options.ext.slice(1);
 
   return through.obj(function(file, enc, cb) {
-    var context = this;
 
     if (file.isNull()) {
       this.push(file);
@@ -75,7 +75,7 @@ function include(options) {
     }
 
     if (file.isStream()) {
-      error(context, new Error('Streaming not supported'));
+      error(this, new Error('Streaming not supported'));
       return cb();
     }
 
@@ -87,11 +87,11 @@ function include(options) {
 
     var s = file.contents.toString();
     try {
-      file.contents = new Buffer(exec(s, options, file.base||file.cwd));
+      file.contents = new Buffer(exec.call(this, s, options, file.base||file.cwd));
 
     } catch (e) {
       e.filename = file.path;
-      error(context, e);
+      error(this, e);
     }
 
     this.push(file);
