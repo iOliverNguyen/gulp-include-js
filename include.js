@@ -19,9 +19,9 @@ function error(context, err) {
 // read file contents, continue scanning, check for circular
 // cache _* files
 
-function exec(s, options, base, stack) {
+function exec(s, stack) {
   var result = '';
-  var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
+  var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
   var m = r.exec(s);
   while (m) {
     var isCmt = m[1];
@@ -30,7 +30,7 @@ function exec(s, options, base, stack) {
 
     result += s.slice(0, m.index);
     if (!isCmt) {
-      var sinc = read.call(this, id, options, base, stack||[]);
+      var sinc = read.call(this, id, stack||[]);
       if (inline) sinc = trim(sinc);
       result += inline + sinc;
     }
@@ -40,12 +40,12 @@ function exec(s, options, base, stack) {
   return result + s;
 }
 
-function read(id, options, base, stack) {
+function read(id, stack) {
   var basename = path.basename(id);
   basename = basename[0] === '_'? basename : '_' + basename;
-  basename = path.extname(basename) === options.ext? basename : basename + '.' + options.ext;
+  basename = path.extname(basename) === this.options.ext? basename : basename + '.' + this.options.ext;
 
-  var filepath = path.join(base, path.dirname(id), basename);
+  var filepath = path.join(this.base, path.dirname(id), basename);
   var newStack = stack.concat([id]);
 
   if (stack.indexOf(id) >= 0) {
@@ -55,7 +55,7 @@ function read(id, options, base, stack) {
   }
 
   var s = fs.readFileSync(filepath, {encoding: 'utf8'});
-  s = exec.call(this, s, options, base, newStack);
+  s = exec.call(this, s, newStack);
   return s;
 }
 
@@ -68,6 +68,9 @@ function include(options) {
   if (options.ext[0] === '.') options.ext = options.ext.slice(1);
 
   return through.obj(function(file, enc, cb) {
+
+    this.options = options;
+    this.base = file.base || file.cwd;
 
     if (file.isNull()) {
       this.push(file);
@@ -87,7 +90,7 @@ function include(options) {
 
     var s = file.contents.toString();
     try {
-      file.contents = new Buffer(exec.call(this, s, options, file.base||file.cwd));
+      file.contents = new Buffer(exec.call(this, s));
 
     } catch (e) {
       e.filename = file.path;
