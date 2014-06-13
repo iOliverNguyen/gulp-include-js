@@ -56,19 +56,29 @@ gulp.task('test3', function(cb) {
 });
 
 gulp.task('relative_test',function(cb) {
-  gulp.src('test/relative/*.js', {base:'test/relative'})
+
+  function validate(o) {
+    expect(o.A).equal('A');
+    expect(o.B).equal('B');
+    expect(o.foo).equal('foo');
+    expect(o.bar).equal('bar');
+    expect(o.pbar).equal('pbar');
+    expect(o.count).equal(2);
+  }
+
+  gulp.src('test/relative/**/*.js', {base:'test/relative'})
     .pipe(plumber())
     .pipe(includeJs())
     .pipe(gulp.dest('test/out/relative'))
     .on('error', console.log)
     .on('end', function() {
       var a = require('./test/out/relative/a');
-      expect(a.A).equal('A');
-      expect(a.B).equal('B');
-      expect(a.foo).equal('foo');
-      expect(a.bar).equal('bar');
-      expect(a.pbar).equal('pbar');
-      expect(a.count).equal(2);
+      validate(a);
+
+      var b = require('./test/out/relative/foo/bar/b');
+      validate(b);
+
+      console.log('Relative Test OK');
       cb();
     });
 });
@@ -159,4 +169,8 @@ gulp.task('test', function() {
   gulp.start('relative_test');
   gulp.start('trim_test');
   gulp.start('cache_test');
+});
+
+gulp.task('default', function(cb) {
+  runSequence('clean', 'test', cb);
 });

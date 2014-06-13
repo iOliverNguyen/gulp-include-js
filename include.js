@@ -24,7 +24,7 @@ function exec(s, id, stack) {
     var childId = m[3];
 
     // Resolve relative path
-    if (childId[0] === '.') childId = path.join(path.dirname(id), childId);
+    if (childId[0] === '.') childId = path.join(path.join(path.dirname(id), childId));
 
     result += s.slice(0, m.index);
     if (!isCmt) {
@@ -139,7 +139,7 @@ function include(options) {
 
     var s = file.contents.toString();
     try {
-      file.contents = new Buffer(exec.call(this, s));
+      file.contents = new Buffer(exec.call(this, s, this.id));
 
     } catch (e) {
       e.filename = file.path;
