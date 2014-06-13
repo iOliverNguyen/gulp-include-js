@@ -5,6 +5,7 @@ function Annie() {
   return 'A';
 }
 
+// This comment is added to test an issue
 INCLUDE('b');
 
 function Caitlyn() {

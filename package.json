@@ -21,10 +21,12 @@
   },
   "devDependencies": {
     "chai": "^1.9.1",
-    "gulp": "^3.6.2",
-    "gulp-plumber": "^0.6.1",
+    "gulp": "^3.8.0",
+    "gulp-plumber": "^0.6.3",
     "gulp-run-sequence": "^0.3.2",
     "gulp-insert": "^0.3.0",
-    "gulp-clean": "^0.2.4"
+    "gulp-clean": "^0.2.4",
+    "through2": "^0.4.2",
+    "gulp-util": "^2.2.17"
   }
 }

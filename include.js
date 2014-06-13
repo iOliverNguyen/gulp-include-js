@@ -14,18 +14,21 @@ function error(context, err) {
   context.emit('error', new gutil.PluginError(pluginName, err));
 }
 
-function exec(s, stack) {
+function exec(s, id, stack) {
   var result = '';
-  var r = new RegExp('(//[^\r\n]*)?([^\\s]+\\s*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
+  var r = new RegExp('(//[^\r\n]*)?([^\\s]+[ \t]*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
   var m = r.exec(s);
   while (m) {
     var isCmt = m[1];
     var inline = m[2] || '';
-    var id = m[3];
+    var childId = m[3];
+
+    // Resolve relative path
+    if (childId[0] === '.') childId = path.join(path.dirname(id), childId);
 
     result += s.slice(0, m.index);
     if (!isCmt) {
-      var sinc = read.call(this, id, stack||[]);
+      var sinc = read.call(this, childId, stack||[]);
       if (inline) sinc = trim(sinc);
       result += inline + sinc;
 
@@ -56,7 +59,7 @@ function read(id, stack) {
   this.includes[filepath] = this.includes[filepath] || time(filepath);
 
   var s = readIncFile.call(this, filepath);
-  s = exec.call(this, s, newStack);
+  s = exec.call(this, s, id, newStack);
   return s;
 }
 

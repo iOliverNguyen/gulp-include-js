@@ -55,6 +55,24 @@ gulp.task('test3', function(cb) {
     });
 });
 
+gulp.task('relative_test',function(cb) {
+  gulp.src('test/relative/*.js', {base:'test/relative'})
+    .pipe(plumber())
+    .pipe(includeJs())
+    .pipe(gulp.dest('test/out/relative'))
+    .on('error', console.log)
+    .on('end', function() {
+      var a = require('./test/out/relative/a');
+      expect(a.A).equal('A');
+      expect(a.B).equal('B');
+      expect(a.foo).equal('foo');
+      expect(a.bar).equal('bar');
+      expect(a.pbar).equal('pbar');
+      expect(a.count).equal(2);
+      cb();
+    });
+});
+
 gulp.task('trim_test', function(cb) {
   require('./test/trim_test');
   console.log('Trim Test OK');
@@ -138,6 +156,7 @@ gulp.task('test', function() {
   gulp.start('test1');
   gulp.start('test2');
   gulp.start('test3');
+  gulp.start('relative_test');
   gulp.start('trim_test');
   gulp.start('cache_test');
 });
