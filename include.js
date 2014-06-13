@@ -16,7 +16,7 @@ function error(context, err) {
 
 function exec(s, id, stack) {
   var result = '';
-  var r = new RegExp('(//[^\r\n]*)?([^\\s]+[ \t]*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
+  var r = new RegExp('(//[^\r\n]*)?([^\\s]+[ \\t\\v]*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
   var m = r.exec(s);
   while (m) {
     var isCmt = m[1];
