@@ -1,6 +1,6 @@
 {
   "name": "gulp-include-js",
-  "version": "0.2",
+  "version": "0.2.0",
   "author": "Vu Nguyen <ng-vu@liti.ws>",
   "description": "Plugin for Gulp to includes JavaScript files",
   "homepage": "http://github.com/ng-vu/gulp-include-js",
