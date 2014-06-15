@@ -25,7 +25,7 @@ gulp.task('test2', function(cb) {
   var isError = false;
   gulp.src('test/2/*.js', {base:'test/2'})
     .pipe(plumber(function(err) {
-      if (typeof err.message === 'string' && err.message.match(/^Circular/)) {
+      if (typeof err.message === 'string' && err.message.match(/Circular/)) {
         isError = true;
         console.log('Test 2 OK', err.message);
       }

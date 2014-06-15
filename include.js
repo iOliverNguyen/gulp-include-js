@@ -6,15 +6,19 @@ var trim = require('./lib/trim');
 
 var pluginName = 'include-js';
 var magenta = gutil.colors.magenta;
+var cyan = gutil.colors.cyan;
 
-var cacheModules = {};    // {time: Date, includes: Array}
-var cacheIncludes = {};   // {time: Date, content: String}
+var caches = {};
 
-function error(context, err) {
-  context.emit('error', new gutil.PluginError(pluginName, err));
+function error(context, includedId, err) {
+  err.message = 'Error in ' + cyan(context.filepath) + ': ' +
+    (includedId? context.options.keyword + '("' + cyan(includedId) + '"): ': '') + err.message;
+  err.filename = context.filepath;
+  throw err;
 }
 
 function exec(s, id, stack) {
+
   var result = '';
   var r = new RegExp('(//[^\r\n]*)?([^\\s]+[ \\t\\v]*)?' + this.options.keyword + '\\s*\\( *[\'"]([^\'"]*)[\'"]\\s*\\)');
   var m = r.exec(s);
@@ -27,13 +31,17 @@ function exec(s, id, stack) {
     if (childId[0] === '.') childId = path.join(path.join(path.dirname(id), childId));
 
     result += s.slice(0, m.index);
-    if (!isCmt) {
-      var sinc = read.call(this, childId, stack||[]);
+    if (isCmt) {
+      result += m[0];
+
+    } else try {
+      var sinc = read.call(this, childId, stack);
       if (inline) sinc = trim(sinc);
       result += inline + sinc;
 
-    } else {
-      result += m[0];
+    } catch(e) {
+      error(this, childId, e);
+      return;
     }
     s = s.slice(m.index + m[0].length);
     m = r.exec(s);
@@ -43,35 +51,40 @@ function exec(s, id, stack) {
 
 function read(id, stack) {
 
-  var basename = path.basename(id);
-  basename = basename[0] === '_'? basename : '_' + basename;
-  basename = path.extname(basename) === this.options.ext? basename : basename + '.' + this.options.ext;
+  var filepath;
+  if (this.options.exactName) {
+    filepath = path.join(this.base, id);
 
-  var filepath = path.join(this.base, path.dirname(id), basename);
-  var newStack = stack.concat([id]);
+  } else {
+    var basename = path.basename(id);
+    basename = basename[0] === '_'? basename : '_' + basename;
+    basename = path.extname(basename) === this.options.ext? basename : basename + '.' + this.options.ext;
 
-  if (stack.indexOf(id) >= 0) {
-    error(this, new Error('Circular ' +
-      newStack.map(function(i){ return magenta(i); }).join(', ')));
-    return 'INCLUDE_ERROR(\'' + id + '\')';
+    filepath = path.join(this.base, path.dirname(id), basename);
   }
+
+  var newStack = stack.concat([filepath]);
+
+  if (stack.indexOf(filepath) >= 0) throw new Error('Circular ' +
+    newStack.map(function(i){ return magenta(i); }).join(', '));
 
   this.includes[filepath] = this.includes[filepath] || time(filepath);
 
   var s = readIncFile.call(this, filepath);
-  s = exec.call(this, s, id, newStack);
+  if (this.options.recursive) s = exec.call(this, s, id, newStack);
+  if (this.options.transform) s = this.options.transform(s);
   return s;
 }
 
 function readIncFile(filepath) {
   var isCache = this.options.cache;
-  var cache = cacheIncludes[filepath];
-  if (isCache && cache && time(filepath) === cache.time) {
-    return cache.content;
+  if (isCache) {
+    var cache = this.cacheIncludes[filepath];
+    if (cache && time(filepath) === cache.time) return cache.content;
   }
 
   var s = fs.readFileSync(filepath, {encoding: 'utf8'});
-  if (isCache) cacheIncludes[filepath] = {
+  if (isCache) this.cacheIncludes[filepath] = {
     time: time(filepath),
     content: s
   };
@@ -85,12 +98,11 @@ function time(filepath) {
     return stat? stat.mtime.getTime() : null;
 
   } catch(e) {
-    gutil.log('include-js: path not found', magenta(filepath));
     return null;
   }
 }
 
-function isDirty(filepath) {
+function isDirty(filepath, cacheModules, cacheIncludes) {
   var cache = cacheModules[filepath];
   if (!cache || cache.time !== time(filepath)) return true;
   if (!cache.includes) return true;
@@ -108,6 +120,7 @@ function include(options) {
   options.showFiles = typeof options.showFiles === 'string'? options.showFiles :
     options.showFiles? 'include-js:' : false;
   options.ext = options.ext || 'js';
+  if (options.recursive === undefined) options.recursive = true;
   if (options.ext[0] === '.') options.ext = options.ext.slice(1);
 
   return through.obj(function(file, enc, cb) {
@@ -118,37 +131,45 @@ function include(options) {
     this.options = options;
     this.includes = {};
 
+    if (options.cache) {
+      var cachename = options.cache === true? 'default': options.cache;
+      caches[cachename] = caches[cachename] || {
+        includes: {},
+        modules: {}
+      };
+      this.cacheIncludes = caches[cachename].includes;
+      this.cacheModules = caches[cachename].modules;
+    }
+
     if (file.isNull()) {
       this.push(file);
       return cb();
     }
 
-    if (file.isStream()) {
-      error(this, new Error('Streaming not supported'));
-      return cb();
-    }
+    if (file.isStream()) throw new Error('Streaming not supported');
 
     // ignore _* files
     var filename = path.basename(file.path);
     if (filename[0] === '_') return cb();
 
     // check if file was cached
-    if (options.cache && !isDirty(file.path)) {
+    if (options.cache && !isDirty(file.path, this.cacheModules, this.cacheIncludes)) {
       return cb();
     }
 
     var s = file.contents.toString();
     try {
-      file.contents = new Buffer(exec.call(this, s, this.id));
+      s = exec.call(this, s, this.id, [this.filepath]);
 
-    } catch (e) {
-      e.filename = file.path;
-      error(this, e);
+    } catch(e) {
+      this.emit('error', e);
       return cb();
     }
 
+    file.contents = new Buffer(s);
+
     // save to cache
-    if (options.cache) cacheModules[file.path] = {
+    if (options.cache) this.cacheModules[file.path] = {
       time: time(file.path),
       includes: this.includes
     };
